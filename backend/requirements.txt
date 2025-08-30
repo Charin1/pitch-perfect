@@ -1,0 +1,50 @@
+# From: backend/requirements.txt
+# ----------------------------------------
+fastapi
+uvicorn[standard]
+httpx
+beautifulsoup4
+celery
+redis
+
+# New Additions
+sqlalchemy
+psycopg2-binary
+python-dotenv
+alembic # For database migrations
+click
+click_didyoumean
+click_plugins
+click_repl
+kombu
+amqp
+vine
+python-dateutil
+six
+billiard
+prompt_toolkit
+wcwidth
+typing_extensions
+typing_inspection
+pydantic==2.11.7
+pydantic-core==2.33.2
+pydantic-settings==2.10.1
+annotated-types==0.7.0
+idna
+google-genai
+google-auth
+anyio
+sniffio
+certifi
+requests
+urllib3
+pyasn1
+pyasn1_modules
+rsa
+cachetools
+tenacity
+websockets
+packaging
+h11
+starlette
+httpcore
