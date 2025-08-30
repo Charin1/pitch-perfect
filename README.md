@@ -1,5 +1,10 @@
 # PitchPerfect AI 🚀
 
+
+![status](https://img.shields.io/badge/status-in_development-yellow)
+
+⚠️ This project is under active development and is **not production-ready**.
+
 PitchPerfect is an AI-powered web application designed to automate lead generation research. It crawls a target company's website, uses a Large Language Model (Google's Gemini) to generate a detailed business analysis, and helps you craft personalized sales pitches, transforming a manual, time-consuming process into an efficient, data-driven workflow.
 
 ## ✨ Core Features
@@ -112,3 +117,8 @@ You must have the following software installed on your machine:
     ```
 
 You can now access the application at `http://localhost:5173` (or whatever URL your terminal shows).
+
+
+
+## Status
+This project is still in its early stages. Expect breaking changes.
