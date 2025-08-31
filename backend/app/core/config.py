@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     SECRET_KEY: str = os.getenv("SECRET_KEY")
     GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY")
 
+    # --- NEW: Crawler Settings ---
+    CRAWLER_MAX_PAGES: int = int(os.getenv("CRAWLER_MAX_PAGES", 20))
+    CRAWLER_MAX_DEPTH: int = int(os.getenv("CRAWLER_MAX_DEPTH", 3))
+
     class Config:
         env_file = ".env"
 

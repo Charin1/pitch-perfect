@@ -7,6 +7,10 @@ import { getLeadDetails, generatePitch } from '../api';
 import PitchEditor from '../components/PitchEditor';
 
 // --- TYPE DEFINITIONS for the data parsed from the analysis_json field ---
+interface KeyPerson {
+  name: string;
+  title: string;
+}
 interface DetailedAnalysis {
   business_model: string;
   target_audience: string;
@@ -26,6 +30,7 @@ interface AnalysisData {
   simple_pitch: string;
   swot_analysis: SwotAnalysis;
   detailed_analysis: DetailedAnalysis;
+  key_persons: KeyPerson[];
 }
 
 // --- UI SUB-COMPONENTS ---
@@ -124,6 +129,33 @@ const DetailedAnalysisPanel = ({ data }: { data: DetailedAnalysis }) => (
   </div>
 );
 
+const KeyPersonsPanel = ({ data }: { data: KeyPerson[] }) => (
+  <div className="bg-white p-6 rounded-lg shadow-md">
+    {data && data.length > 0 ? (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {data.map((person, index) => (
+          <div key={index} className="flex items-center gap-4 p-4 border rounded-lg bg-gray-50">
+            <div className="avatar placeholder">
+              <div className="bg-orange-600 text-white rounded-full w-12">
+                <span className="text-xl">{person.name.charAt(0)}</span>
+              </div>
+            </div>
+            <div>
+              <p className="font-bold text-gray-800">{person.name}</p>
+              <p className="text-sm text-gray-600">{person.title}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div className="text-center py-10">
+        <p className="text-gray-600">No C-suite or key persons found on the website.</p>
+        <p className="text-sm text-gray-400">The AI may not have found a dedicated team page.</p>
+      </div>
+    )}
+  </div>
+);
+
 
 // --- MAIN PAGE COMPONENT ---
 export default function LeadDetailPage() {
@@ -132,7 +164,6 @@ export default function LeadDetailPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [userProduct, setUserProduct] = useState("Our innovative B2B SaaS solution that boosts productivity.");
   
-  // This is the full, correct implementation of the useQuery hook
   const { data: lead, isLoading, error } = useQuery({
     queryKey: ['lead', leadId],
     queryFn: () => getLeadDetails(Number(leadId)),
@@ -144,7 +175,6 @@ export default function LeadDetailPage() {
     },
   });
 
-  // This is the full, correct implementation of the useMutation hook
   const mutation = useMutation({
     mutationFn: (productDesc: string) => generatePitch(Number(leadId), productDesc),
     onSuccess: () => {
@@ -152,7 +182,6 @@ export default function LeadDetailPage() {
     }
   });
 
-  // This is the full, correct implementation of the useMemo hook
   const analysisData: AnalysisData | null = useMemo(() => {
     try {
       return lead?.analysis_json ? JSON.parse(lead.analysis_json) : null;
@@ -184,6 +213,7 @@ export default function LeadDetailPage() {
             <a role="tab" className={`tab ${activeTab === 'overview' ? 'tab-active font-semibold' : ''}`} onClick={() => setActiveTab('overview')}>Overview</a>
             <a role="tab" className={`tab ${activeTab === 'detailed' ? 'tab-active font-semibold' : ''}`} onClick={() => setActiveTab('detailed')} disabled={!analysisData}>Detailed Analysis</a>
             <a role="tab" className={`tab ${activeTab === 'swot' ? 'tab-active font-semibold' : ''}`} onClick={() => setActiveTab('swot')} disabled={!analysisData}>SWOT Analysis</a>
+            <a role="tab" className={`tab ${activeTab === 'persons' ? 'tab-active font-semibold' : ''}`} onClick={() => setActiveTab('persons')} disabled={!analysisData}>Key Persons</a>
           </div>
           
           {lead.status === 'COMPLETED' && analysisData ? (
@@ -191,6 +221,7 @@ export default function LeadDetailPage() {
               {activeTab === 'overview' && <OverviewPanel data={analysisData} />}
               {activeTab === 'detailed' && <DetailedAnalysisPanel data={analysisData.detailed_analysis} />}
               {activeTab === 'swot' && <SwotPanel data={analysisData.swot_analysis} />}
+              {activeTab === 'persons' && <KeyPersonsPanel data={analysisData.key_persons} />}
             </div>
           ) : (
             <div className="bg-white p-6 rounded-lg shadow-md min-h-[300px] flex items-center justify-center">
