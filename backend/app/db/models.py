@@ -1,3 +1,5 @@
+# From: backend/app/db/models.py
+# ----------------------------------------
 import enum
 from sqlalchemy import (Column, Integer, String, Text, DateTime, ForeignKey, Enum)
 from sqlalchemy.orm import relationship
@@ -18,16 +20,22 @@ class Lead(Base):
     website_url = Column(String, unique=True, index=True)
     status = Column(Enum(LeadStatus), default=LeadStatus.PENDING, nullable=False)
     
+    # --- LEGACY & QUICK ACCESS COLUMNS ---
     page_title = Column(String, nullable=True)
     page_description = Column(Text, nullable=True)
     summary = Column(Text, nullable=True)
-    bullet_points = Column(Text, nullable=True)
+    bullet_points = Column(Text, nullable=True) # Will store JSON array as string
+    
+    # --- NEW SCALABLE COLUMN ---
+    # This will store the full JSON object with summary, bullets, SWOT, etc.
+    analysis_json = Column(Text, nullable=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
     
     pitches = relationship("Pitch", back_populates="lead", cascade="all, delete-orphan")
 
+# ... (Pitch model remains the same) ...
 class Pitch(Base):
     __tablename__ = "pitches"
     id = Column(Integer, primary_key=True, index=True)

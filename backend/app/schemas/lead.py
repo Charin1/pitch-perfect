@@ -1,3 +1,5 @@
+# From: backend/app/schemas/lead.py
+# ----------------------------------------
 from pydantic import BaseModel, HttpUrl
 from typing import Optional
 from datetime import datetime
@@ -16,6 +18,7 @@ class LeadRead(LeadBase):
     page_title: Optional[str] = None
     summary: Optional[str] = None
     bullet_points: Optional[str] = None
+    analysis_json: Optional[str] = None # <-- ADD THIS LINE
     created_at: datetime
 
     class Config:

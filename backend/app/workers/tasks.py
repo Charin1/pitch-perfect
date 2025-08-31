@@ -55,17 +55,13 @@ def process_lead_website(lead_id: int, url: str):
         Analyze the website content for the company '{data.get('title', 'Unknown')}'.
         Content: "{data.get('body', '')[:4000]}"
 
-        Based on this content, provide the following in a raw JSON format:
-        1.  A "summary": A concise, one-paragraph summary of the company's primary business.
-        2.  "bullet_points": An array of exactly 10 key bullet points highlighting their main products, services, or value propositions.
-        3.  "simple_pitch": A very short, one-sentence opening pitch line that shows I've researched their company.
+        Provide a detailed business analysis in a raw JSON format. The JSON object must contain the following keys:
+        1. "summary": A concise, one-paragraph summary of the company's primary business.
+        2. "bullet_points": An array of exactly 10 key bullet points about their products or services.
+        3. "simple_pitch": A very short, one-sentence opening pitch line.
+        4. "swot_analysis": An object containing four keys: "strengths", "weaknesses", "opportunities", and "threats". Each key should have an array of 2-3 descriptive strings.
 
-        Return ONLY the raw JSON object without any markdown formatting. Example:
-        {{
-          "summary": "Example Inc. is a leading provider of cloud-based solutions...",
-          "bullet_points": ["Point 1", "Point 2", "Point 3", "Point 4", "Point 5", "Point 6", "Point 7", "Point 8", "Point 9", "Point 10"],
-          "simple_pitch": "Seeing your work in enterprise data solutions, I thought..."
-        }}
+        Return ONLY the raw JSON object.
         """
         
         analysis_result_str = run_async(ai_service.generate_text(analysis_prompt))
@@ -74,15 +70,18 @@ def process_lead_website(lead_id: int, url: str):
         clean_json_str = analysis_result_str.strip().replace("```json", "").replace("```", "")
         analysis_data = json.loads(clean_json_str)
         
+        # --- SAVE TO THE NEW AND OLD COLUMNS ---
+        lead.analysis_json = json.dumps(analysis_data) # Store the full object
+
+        # For backward compatibility and quick access
         lead.summary = analysis_data.get("summary")
-        # Store the list of bullet points as a JSON string in the database
         lead.bullet_points = json.dumps(analysis_data.get("bullet_points", []))
         
         # Create an initial pitch from the AI's "simple_pitch" suggestion
         initial_pitch_content = analysis_data.get("simple_pitch")
         if initial_pitch_content:
-            initial_pitch = Pitch(lead_id=lead.id, content=initial_pitch_content)
-            db.add(initial_pitch)
+            db.add(Pitch(lead_id=lead.id, content=initial_pitch_content))
+
 
         # Step 3: COMPLETED - The process was successful
         lead.status = LeadStatus.COMPLETED

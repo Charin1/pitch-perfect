@@ -6,7 +6,21 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getLeadDetails, generatePitch } from '../api';
 import PitchEditor from '../components/PitchEditor';
 
-// Helper component for displaying the lead's status with appropriate colors and animation.
+// --- TYPE DEFINITIONS for the data parsed from the new analysis_json field ---
+interface SwotAnalysis {
+  strengths: string[];
+  weaknesses: string[];
+  opportunities: string[];
+  threats: string[];
+}
+interface AnalysisData {
+  summary: string;
+  bullet_points: string[];
+  simple_pitch: string;
+  swot_analysis: SwotAnalysis;
+}
+
+// --- UI SUB-COMPONENT: Status Indicator ---
 const StatusIndicator = ({ status }: { status: string }) => {
   const statusStyles: { [key: string]: string } = {
     PENDING: 'bg-gray-200 text-gray-800',
@@ -22,45 +36,92 @@ const StatusIndicator = ({ status }: { status: string }) => {
   );
 };
 
+// --- UI SUB-COMPONENT: Content for the "Overview" Tab ---
+const OverviewPanel = ({ data }: { data: AnalysisData }) => (
+  <div className="flex flex-col gap-8">
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <h3 className="font-bold text-gray-800 mb-2 text-lg">Company Summary</h3>
+      <div className="max-h-48 overflow-y-auto pr-2 text-gray-600 prose">
+        <p>{data.summary}</p>
+      </div>
+    </div>
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <h3 className="font-bold text-gray-800 mb-2 text-lg">10 Key Business Points</h3>
+      <div className="max-h-72 overflow-y-auto pr-2">
+        <ul className="list-disc list-inside space-y-2 text-gray-600">
+          {data.bullet_points?.map((point, index) => <li key={index}>{point}</li>)}
+        </ul>
+      </div>
+    </div>
+  </div>
+);
+
+// --- UI SUB-COMPONENT: Content for the "SWOT Analysis" Tab ---
+const SwotPanel = ({ data }: { data: SwotAnalysis }) => (
+  <div className="bg-white p-6 rounded-lg shadow-md">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div>
+        <h3 className="font-bold text-lg text-green-700 mb-2">Strengths</h3>
+        <ul className="list-disc list-inside space-y-1 text-gray-600">
+          {data.strengths?.map((point, i) => <li key={`s-${i}`}>{point}</li>)}
+        </ul>
+      </div>
+      <div>
+        <h3 className="font-bold text-lg text-red-700 mb-2">Weaknesses</h3>
+        <ul className="list-disc list-inside space-y-1 text-gray-600">
+          {data.weaknesses?.map((point, i) => <li key={`w-${i}`}>{point}</li>)}
+        </ul>
+      </div>
+      <div>
+        <h3 className="font-bold text-lg text-blue-700 mb-2">Opportunities</h3>
+        <ul className="list-disc list-inside space-y-1 text-gray-600">
+          {data.opportunities?.map((point, i) => <li key={`o-${i}`}>{point}</li>)}
+        </ul>
+      </div>
+      <div>
+        <h3 className="font-bold text-lg text-orange-600 mb-2">Threats</h3>
+        <ul className="list-disc list-inside space-y-1 text-gray-600">
+          {data.threats?.map((point, i) => <li key={`t-${i}`}>{point}</li>)}
+        </ul>
+      </div>
+    </div>
+  </div>
+);
+
+
+// --- MAIN PAGE COMPONENT ---
 export default function LeadDetailPage() {
   const { leadId } = useParams<{ leadId: string }>();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState('overview');
   const [userProduct, setUserProduct] = useState("Our innovative B2B SaaS solution that boosts productivity.");
   
   const { data: lead, isLoading, error } = useQuery({
     queryKey: ['lead', leadId],
     queryFn: () => getLeadDetails(Number(leadId)),
     enabled: !!leadId,
-    // This is the corrected refetchInterval logic for React Query v5.
-    // It uses the 'query' object to access the data and determine if polling should continue.
     refetchInterval: (query) => {
       const data = query.state.data;
       const isProcessing = data?.status === 'PENDING' || data?.status === 'CRAWLING' || data?.status === 'ANALYZING';
-      return isProcessing ? 5000 : false; // Poll every 5 seconds if in progress, otherwise stop.
+      return isProcessing ? 5000 : false;
     },
   });
 
   const mutation = useMutation({
     mutationFn: (productDesc: string) => generatePitch(Number(leadId), productDesc),
     onSuccess: () => {
-      // In a more advanced app, you might refetch a list of pitches for this lead.
-      // For now, the UI just displays the newly generated pitch.
       queryClient.invalidateQueries({ queryKey: ['pitches', leadId] });
     }
   });
 
-  // Safely parse the bullet_points JSON string from the database.
-  // useMemo ensures this only runs when the lead data changes.
-  const bulletPoints = useMemo(() => {
+  const analysisData: AnalysisData | null = useMemo(() => {
     try {
-      return lead?.bullet_points ? JSON.parse(lead.bullet_points) : [];
+      return lead?.analysis_json ? JSON.parse(lead.analysis_json) : null;
     } catch {
-      // Return an empty array if parsing fails.
-      return [];
+      return null;
     }
-  }, [lead?.bullet_points]);
+  }, [lead?.analysis_json]);
 
-  // --- Render logic for different states ---
   if (isLoading) return <div className="p-8 text-center text-gray-600">Loading lead details...</div>;
   if (error) return <div className="p-8 text-center text-red-600">Error: {error.message}</div>;
   if (!lead) return <div className="p-8 text-center text-gray-600">Lead not found.</div>;
@@ -78,42 +139,38 @@ export default function LeadDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-        {/* Left Column: AI-Generated Analysis */}
+        {/* Left/Middle Column: Tabbed Analysis Panel */}
         <div className="lg:col-span-3">
-          <div className="bg-white p-6 rounded-lg shadow-md min-h-[300px]">
-            <h2 className="text-xl font-semibold text-gray-700 mb-4">AI-Generated Analysis</h2>
-            
-            {lead.status !== 'COMPLETED' && lead.status !== 'FAILED' && (
-              <div className="text-center py-10">
-                <p className="text-gray-600">Analysis in progress...</p>
-                <p className="text-sm text-gray-400">(This page will auto-refresh)</p>
-              </div>
-            )}
-
-            {lead.status === 'COMPLETED' && (
-              <div>
-                <h3 className="font-bold text-gray-800">Company Summary</h3>
-                <p className="text-gray-600 mb-6 prose">{lead.summary}</p>
-                
-                <h3 className="font-bold text-gray-800">10 Key Business Points</h3>
-                <ul className="list-disc list-inside mt-2 space-y-2 text-gray-600">
-                  {bulletPoints.map((point: string, index: number) => (
-                    <li key={index}>{point}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-             {lead.status === 'FAILED' && (
-              <div className="text-center py-10">
-                <p className="text-red-600 font-bold">Analysis Failed</p>
-                <p className="text-sm text-gray-500">Could not crawl or analyze the website. Please check the URL.</p>
-              </div>
-            )}
+          <div role="tablist" className="tabs tabs-bordered mb-4">
+            <a role="tab" className={`tab ${activeTab === 'overview' ? 'tab-active font-semibold' : ''}`} onClick={() => setActiveTab('overview')}>Overview</a>
+            <a role="tab" className={`tab ${activeTab === 'swot' ? 'tab-active font-semibold' : ''}`} onClick={() => setActiveTab('swot')} disabled={!analysisData}>SWOT Analysis</a>
           </div>
+          
+          {lead.status === 'COMPLETED' && analysisData ? (
+            <div>
+              {activeTab === 'overview' && <OverviewPanel data={analysisData} />}
+              {activeTab === 'swot' && <SwotPanel data={analysisData.swot_analysis} />}
+            </div>
+          ) : (
+            <div className="bg-white p-6 rounded-lg shadow-md min-h-[300px] flex items-center justify-center">
+              <div className="text-center">
+                {lead.status === 'FAILED' ? (
+                  <>
+                    <p className="text-red-600 font-bold">Analysis Failed</p>
+                    <p className="text-sm text-gray-500">Could not crawl or analyze the website.</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-gray-600">Analysis in progress...</p>
+                    <p className="text-sm text-gray-400">(This page will auto-refresh)</p>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Right Column: Pitch Generation */}
+        {/* Right Column: Pitch Generation (Unchanged) */}
         <div className="lg:col-span-2">
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-semibold text-gray-700 mb-4">Generate a Pitch</h2>

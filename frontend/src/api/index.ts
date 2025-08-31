@@ -16,8 +16,10 @@ export interface Lead {
   page_title?: string;
   summary?: string;
   bullet_points?: string;
+  analysis_json?: string;
   created_at: string;
 }
+
 
 export interface Pitch {
   id: number;
