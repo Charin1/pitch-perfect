@@ -36,6 +36,8 @@ export const createLead = (data: { company_name: string; website_url: string }):
 export const getLeadDetails = (leadId: number): Promise<Lead> =>
   api.get(`/api/v1/leads/${leadId}`).then(res => res.data);
 
+export const deleteLead = (leadId: number): Promise<void> => 
+  api.delete(`/api/v1/leads/${leadId}`);
 
 // --- PITCHES API Calls ---
 

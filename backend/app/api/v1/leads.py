@@ -1,6 +1,6 @@
 # From: backend/app/api/v1/leads.py
 # ----------------------------------------
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -88,3 +88,23 @@ def generate_pitch_for_lead(lead_id: int, request: pitch_schema.PitchCreateReque
     db.refresh(new_pitch)
     
     return new_pitch
+
+@router.delete("/{lead_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_lead(lead_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a specific lead by its ID.
+    """
+    # First, find the lead in the database.
+    db_lead = db.query(models.Lead).filter(models.Lead.id == lead_id).first()
+    
+    # If the lead doesn't exist, return a 404 Not Found error.
+    if db_lead is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lead not found")
+    
+    # If found, delete it from the database session.
+    db.delete(db_lead)
+    db.commit()
+    
+    # Return a 204 No Content response, which is standard for successful deletions.
+    # The Response object is used here to ensure no body is sent back.
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
