@@ -6,7 +6,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getLeadDetails, generatePitch } from '../api';
 import PitchEditor from '../components/PitchEditor';
 
-// --- TYPE DEFINITIONS for the data parsed from the new analysis_json field ---
+// --- TYPE DEFINITIONS for the data parsed from the analysis_json field ---
+interface DetailedAnalysis {
+  business_model: string;
+  target_audience: string;
+  value_proposition: string;
+  company_tone: string;
+  potential_needs: string[];
+}
 interface SwotAnalysis {
   strengths: string[];
   weaknesses: string[];
@@ -18,9 +25,11 @@ interface AnalysisData {
   bullet_points: string[];
   simple_pitch: string;
   swot_analysis: SwotAnalysis;
+  detailed_analysis: DetailedAnalysis;
 }
 
-// --- UI SUB-COMPONENT: Status Indicator ---
+// --- UI SUB-COMPONENTS ---
+
 const StatusIndicator = ({ status }: { status: string }) => {
   const statusStyles: { [key: string]: string } = {
     PENDING: 'bg-gray-200 text-gray-800',
@@ -36,11 +45,10 @@ const StatusIndicator = ({ status }: { status: string }) => {
   );
 };
 
-// --- UI SUB-COMPONENT: Content for the "Overview" Tab ---
 const OverviewPanel = ({ data }: { data: AnalysisData }) => (
   <div className="flex flex-col gap-8">
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <h3 className="font-bold text-gray-800 mb-2 text-lg">Company Summary</h3>
+      <h3 className="font-bold text-gray-800 mb-2 text-lg">Company Quick Summary</h3>
       <div className="max-h-48 overflow-y-auto pr-2 text-gray-600 prose">
         <p>{data.summary}</p>
       </div>
@@ -56,7 +64,6 @@ const OverviewPanel = ({ data }: { data: AnalysisData }) => (
   </div>
 );
 
-// --- UI SUB-COMPONENT: Content for the "SWOT Analysis" Tab ---
 const SwotPanel = ({ data }: { data: SwotAnalysis }) => (
   <div className="bg-white p-6 rounded-lg shadow-md">
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -88,6 +95,35 @@ const SwotPanel = ({ data }: { data: SwotAnalysis }) => (
   </div>
 );
 
+const DetailedAnalysisPanel = ({ data }: { data: DetailedAnalysis }) => (
+  <div className="bg-white p-6 rounded-lg shadow-md">
+    <div className="space-y-6 prose max-w-none text-gray-600">
+      <div>
+        <h3 className="font-bold text-gray-800 mt-0">Business Model</h3>
+        <p>{data.business_model}</p>
+      </div>
+      <div>
+        <h3 className="font-bold text-gray-800">Target Audience</h3>
+        <p>{data.target_audience}</p>
+      </div>
+      <div>
+        <h3 className="font-bold text-gray-800">Value Proposition</h3>
+        <p>{data.value_proposition}</p>
+      </div>
+      <div>
+        <h3 className="font-bold text-gray-800">Company Tone & Style</h3>
+        <p>{data.company_tone}</p>
+      </div>
+      <div>
+        <h3 className="font-bold text-orange-700">Potential Needs & Pain Points</h3>
+        <ul className="list-disc list-inside">
+          {data.potential_needs?.map((point, i) => <li key={`need-${i}`}>{point}</li>)}
+        </ul>
+      </div>
+    </div>
+  </div>
+);
+
 
 // --- MAIN PAGE COMPONENT ---
 export default function LeadDetailPage() {
@@ -96,6 +132,7 @@ export default function LeadDetailPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [userProduct, setUserProduct] = useState("Our innovative B2B SaaS solution that boosts productivity.");
   
+  // This is the full, correct implementation of the useQuery hook
   const { data: lead, isLoading, error } = useQuery({
     queryKey: ['lead', leadId],
     queryFn: () => getLeadDetails(Number(leadId)),
@@ -107,6 +144,7 @@ export default function LeadDetailPage() {
     },
   });
 
+  // This is the full, correct implementation of the useMutation hook
   const mutation = useMutation({
     mutationFn: (productDesc: string) => generatePitch(Number(leadId), productDesc),
     onSuccess: () => {
@@ -114,6 +152,7 @@ export default function LeadDetailPage() {
     }
   });
 
+  // This is the full, correct implementation of the useMemo hook
   const analysisData: AnalysisData | null = useMemo(() => {
     try {
       return lead?.analysis_json ? JSON.parse(lead.analysis_json) : null;
@@ -143,12 +182,14 @@ export default function LeadDetailPage() {
         <div className="lg:col-span-3">
           <div role="tablist" className="tabs tabs-bordered mb-4">
             <a role="tab" className={`tab ${activeTab === 'overview' ? 'tab-active font-semibold' : ''}`} onClick={() => setActiveTab('overview')}>Overview</a>
+            <a role="tab" className={`tab ${activeTab === 'detailed' ? 'tab-active font-semibold' : ''}`} onClick={() => setActiveTab('detailed')} disabled={!analysisData}>Detailed Analysis</a>
             <a role="tab" className={`tab ${activeTab === 'swot' ? 'tab-active font-semibold' : ''}`} onClick={() => setActiveTab('swot')} disabled={!analysisData}>SWOT Analysis</a>
           </div>
           
           {lead.status === 'COMPLETED' && analysisData ? (
             <div>
               {activeTab === 'overview' && <OverviewPanel data={analysisData} />}
+              {activeTab === 'detailed' && <DetailedAnalysisPanel data={analysisData.detailed_analysis} />}
               {activeTab === 'swot' && <SwotPanel data={analysisData.swot_analysis} />}
             </div>
           ) : (
@@ -170,7 +211,7 @@ export default function LeadDetailPage() {
           )}
         </div>
 
-        {/* Right Column: Pitch Generation (Unchanged) */}
+        {/* Right Column: Pitch Generation */}
         <div className="lg:col-span-2">
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-semibold text-gray-700 mb-4">Generate a Pitch</h2>

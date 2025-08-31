@@ -20,11 +20,6 @@ def run_async(func):
 
 @celery.task
 def process_lead_website(lead_id: int, url: str):
-    """
-    The main background task to process a new lead.
-    It crawls the website, sends the content to the AI for analysis,
-    and populates the database with the results.
-    """
     db: Session = SessionLocal()
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
@@ -32,58 +27,52 @@ def process_lead_website(lead_id: int, url: str):
         return
 
     try:
-        # Step 1: CRAWLING - Update status and fetch website content
+        # ... (Crawling logic is the same) ...
         lead.status = LeadStatus.CRAWLING
         db.commit()
-        
         html = run_async(fetch_html(url))
-        if not html:
-            raise ValueError("Failed to fetch HTML content from the URL.")
-        
+        if not html: raise ValueError("Failed to fetch HTML.")
         data = run_async(extract_text(html))
-        
         lead.page_title = data.get('title')
         lead.page_description = data.get('description')
         db.commit()
 
-        # Step 2: ANALYZING - Update status and call the Generative AI service
         lead.status = LeadStatus.ANALYZING
         db.commit()
 
-        # This is the enhanced prompt asking for a detailed analysis in JSON format.
+        # --- NEW, COMPREHENSIVE PROMPT ---
         analysis_prompt = f"""
         Analyze the website content for the company '{data.get('title', 'Unknown')}'.
-        Content: "{data.get('body', '')[:4000]}"
+        Content: "{data.get('body', '')[:5000]}"
 
-        Provide a detailed business analysis in a raw JSON format. The JSON object must contain the following keys:
+        Provide a comprehensive business analysis in a raw JSON format. The JSON object must contain the following keys:
         1. "summary": A concise, one-paragraph summary of the company's primary business.
         2. "bullet_points": An array of exactly 10 key bullet points about their products or services.
         3. "simple_pitch": A very short, one-sentence opening pitch line.
-        4. "swot_analysis": An object containing four keys: "strengths", "weaknesses", "opportunities", and "threats". Each key should have an array of 2-3 descriptive strings.
+        4. "swot_analysis": An object with four keys: "strengths", "weaknesses", "opportunities", and "threats". Each key should have an array of 2-3 descriptive strings.
+        5. "detailed_analysis": An object with the following keys:
+           - "business_model": A string describing how the company likely makes money.
+           - "target_audience": A string describing their ideal customer profile.
+           - "value_proposition": A string explaining their unique value.
+           - "company_tone": A string describing the voice and style of their website copy.
+           - "potential_needs": An array of 2-3 strings describing potential business challenges they might face.
 
         Return ONLY the raw JSON object.
         """
         
         analysis_result_str = run_async(ai_service.generate_text(analysis_prompt))
         
-        # Clean and parse the JSON result from the AI
         clean_json_str = analysis_result_str.strip().replace("```json", "").replace("```", "")
         analysis_data = json.loads(clean_json_str)
         
-        # --- SAVE TO THE NEW AND OLD COLUMNS ---
-        lead.analysis_json = json.dumps(analysis_data) # Store the full object
-
-        # For backward compatibility and quick access
+        lead.analysis_json = json.dumps(analysis_data)
         lead.summary = analysis_data.get("summary")
         lead.bullet_points = json.dumps(analysis_data.get("bullet_points", []))
         
-        # Create an initial pitch from the AI's "simple_pitch" suggestion
         initial_pitch_content = analysis_data.get("simple_pitch")
         if initial_pitch_content:
             db.add(Pitch(lead_id=lead.id, content=initial_pitch_content))
 
-
-        # Step 3: COMPLETED - The process was successful
         lead.status = LeadStatus.COMPLETED
         db.commit()
 
@@ -92,8 +81,8 @@ def process_lead_website(lead_id: int, url: str):
         lead.status = LeadStatus.FAILED
         db.commit()
     finally:
-        # Always close the database session to prevent connection leaks
         db.close()
+
 
 @celery.task
 def generate_pitch_task(lead_id: int, user_product: str) -> str:
