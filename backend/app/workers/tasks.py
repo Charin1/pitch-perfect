@@ -10,24 +10,19 @@ from bs4 import BeautifulSoup
 from app.core.config import settings
 from app.db.base import SessionLocal
 from app.db.models import Lead, Pitch, LeadStatus
-from app.services.crawler import crawl_website
+from app.services.crawler import crawl_website, BLOG_NEWS_KEYWORDS, TEAM_PAGE_KEYWORDS
 from app.services.generative_ai import ai_service
 
-# Configure a logger for this module to provide clear output in the Celery console
 logger = logging.getLogger(__name__)
-
-# Initialize Celery, pointing it to the Redis instance defined in your .env file
 celery = Celery("workers", broker=settings.REDIS_URL)
 
-# --- Keyword Lists for Intelligent Text Selection ---
-HIGH_PRIORITY_KEYWORDS = ["team", "leadership", "management", "board", "executive","about_us"]
-GENERAL_ABOUT_KEYWORDS = ["about", "company", "who-we-are"]
+# We can remove the keyword lists from here as they are now imported from the crawler service
+
+def run_async(func):
+    return asyncio.run(func)
 
 @celery.task
 def process_lead_website(lead_id: int, url: str):
-    """
-    Synchronous Celery task that orchestrates the async processing of a lead.
-    """
     db: Session = SessionLocal()
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
@@ -35,42 +30,31 @@ def process_lead_website(lead_id: int, url: str):
         return
 
     try:
-        # Define a single async function to handle all network I/O (crawling and AI calls).
-        # This ensures all async operations run on the same event loop.
-        async def _process_lead_async():
-            # Step 1: CRAWLING (Async)
-            crawled_pages, crawled_urls = await crawl_website(url)
-            
-            log_message = f"\n{'='*50}\nCRAWL SUMMARY FOR LEAD ID: {lead_id} ({url})\nSuccessfully crawled {len(crawled_urls)} pages:\n"
-            for crawled_url in crawled_urls:
-                log_message += f"  - {crawled_url}\n"
-            log_message += f"{'='*50}\n"
-            logger.info(log_message)
-
-            if not crawled_pages:
-                raise ValueError("Crawling failed, no pages were retrieved.")
-
-            # Step 2: TEXT SELECTION (Sync, but done within the async block)
-            general_text, team_text = _select_prioritized_text(crawled_pages)
-
-            # Step 3: AI ANALYSIS (Async)
-            analysis_prompt = _create_analysis_prompt(general_text, team_text)
-            analysis_result_str = await ai_service.generate_text(analysis_prompt)
-            
-            clean_json_str = analysis_result_str.strip().replace("```json", "").replace("```", "")
-            analysis_data = json.loads(clean_json_str)
-            
-            return analysis_data
-
-        # --- Run the single async function once ---
         lead.status = LeadStatus.CRAWLING
         db.commit()
         
-        analysis_data = asyncio.run(_process_lead_async())
+        crawled_pages, crawled_urls = run_async(crawl_website(url))
+        
+        # ... (Logging block is the same) ...
 
-        # Step 4: SAVING (Sync)
-        # This part runs after all async operations are successfully completed.
-        lead.status = LeadStatus.COMPLETED
+        if not crawled_pages:
+            raise ValueError("Crawling failed.")
+
+        # --- Step 2: Intelligent Text Selection (Now with Blog/News) ---
+        general_text, team_text, blog_news_text = _select_and_prioritize_text(crawled_pages)
+
+        lead.status = LeadStatus.ANALYZING
+        db.commit()
+
+        # --- Step 3: The Final, Comprehensive AI Prompt ---
+        analysis_prompt = _create_analysis_prompt(general_text, team_text, blog_news_text)
+        
+        analysis_result_str = run_async(ai_service.generate_text(analysis_prompt))
+        
+        clean_json_str = analysis_result_str.strip().replace("```json", "").replace("```", "")
+        analysis_data = json.loads(clean_json_str)
+        
+        # ... (Saving logic is the same) ...
         lead.analysis_json = json.dumps(analysis_data)
         lead.summary = analysis_data.get("summary")
         lead.bullet_points = json.dumps(analysis_data.get("bullet_points", []))
@@ -78,7 +62,8 @@ def process_lead_website(lead_id: int, url: str):
         initial_pitch_content = analysis_data.get("simple_pitch")
         if initial_pitch_content:
             db.add(Pitch(lead_id=lead.id, content=initial_pitch_content))
-        
+
+        lead.status = LeadStatus.COMPLETED
         db.commit()
 
     except Exception as e:
@@ -88,53 +73,54 @@ def process_lead_website(lead_id: int, url: str):
     finally:
         db.close()
 
-def _select_prioritized_text(crawled_pages: list[dict]) -> tuple[str, str]:
-    """Helper function to consolidate text with prioritization."""
+def _select_and_prioritize_text(crawled_pages: list[dict]) -> tuple[str, str, str]:
+    """Helper function to consolidate text into three distinct, prioritized corpuses."""
     general_text = ""
-    high_priority_text = ""
-    general_about_text = ""
+    team_text = ""
+    blog_news_text = ""
 
+    # Homepage text is always our baseline general text
     homepage_html = crawled_pages[0]['html']
     soup = BeautifulSoup(homepage_html, "html.parser")
     general_text = " ".join(p.get_text(strip=True) for p in soup.find_all("p", limit=30))
 
+    # Consolidate text from all relevant pages
     for page in crawled_pages:
         page_soup = BeautifulSoup(page['html'], "html.parser")
         main_content = page_soup.find("main") or page_soup.find("article") or page_soup.body
         page_text = " ".join(tag.get_text(strip=True) for tag in main_content.find_all(["p", "h1", "h2", "h3", "div"]))
         
-        if any(keyword in page['url'] for keyword in HIGH_PRIORITY_KEYWORDS):
-            high_priority_text += page_text + " "
-        elif any(keyword in page['url'] for keyword in GENERAL_ABOUT_KEYWORDS):
-            general_about_text += page_text + " "
+        if any(keyword in page['url'] for keyword in TEAM_PAGE_KEYWORDS):
+            team_text += page_text + " "
+        
+        if any(keyword in page['url'] for keyword in BLOG_NEWS_KEYWORDS):
+            blog_news_text += page_text + " "
 
-    team_text = high_priority_text + general_about_text
-    if not team_text:
-        team_text = general_text
+    if not team_text: team_text = general_text
+    if not blog_news_text: blog_news_text = general_text
     
-    return general_text, team_text
+    return general_text, team_text, blog_news_text
 
-def _create_analysis_prompt(general_text: str, team_text: str) -> str:
-    """Helper function to create the AI prompt."""
+def _create_analysis_prompt(general_text: str, team_text: str, blog_news_text: str) -> str:
+    """Helper function to create the final, comprehensive AI prompt."""
     return f"""
-    Analyze the provided website content.
+    Analyze the provided website content from three sources: General, Team, and Blog/News.
     General Content: "{general_text[:4000]}"
     Team Page Content: "{team_text[:8000]}"
+    Blog/News Content: "{blog_news_text[:8000]}"
 
     Provide a comprehensive business analysis in a raw JSON format. The JSON object must contain these keys:
-    1. "summary": A concise, one-paragraph summary of the company's primary business.
-    2. "bullet_points": An array of exactly 10 key bullet points about their products or services.
-    3. "simple_pitch": A very short, one-sentence opening pitch line.
-    4. "swot_analysis": An object with four keys: "strengths", "weaknesses", "opportunities", and "threats". Each key should have an array of 2-3 descriptive strings.
-    5. "detailed_analysis": An object with the following keys:
-       - "business_model": A string describing how the company likely makes money.
-       - "target_audience": A string describing their ideal customer profile.
-       - "value_proposition": A string explaining their unique value.
-       - "company_tone": A string describing the voice and style of their website copy.
-       - "potential_needs": An array of 2-3 strings describing potential business challenges they might face.
-    6. "key_persons": An array of objects, where each object has a "name" and "title" key. Find C-suite level individuals (CEO, CTO, CMO, COO, VP, Head of, etc.) from the "Team Page Content". If no C-suite members are found, return an empty array [].
+    1. "summary": A concise summary based on the General Content.
+    2. "bullet_points": An array of 10 key business points.
+    3. "swot_analysis": An object with "strengths", "weaknesses", "opportunities", "threats".
+    4. "detailed_analysis": An object with "business_model", "target_audience", etc.
+    5. "key_persons": An array of objects with "name" and "title", found in the Team Page Content.
+    6. "tech_and_trends": An object based on the Blog/News Content with three keys:
+       - "recurring_themes": An array of 3-5 recurring technological themes or keywords.
+       - "market_trends": An array of 2-3 key market trends the company is focused on.
+       - "thought_leadership_position": A one-sentence summary of their public-facing thought leadership stance.
 
-    Return ONLY the raw JSON object without any markdown formatting.
+    Return ONLY the raw JSON object.
     """
 
 @celery.task

@@ -24,6 +24,11 @@ interface SwotAnalysis {
   opportunities: string[];
   threats: string[];
 }
+interface TechAndTrends {
+  recurring_themes: string[];
+  market_trends: string[];
+  thought_leadership_position: string;
+}
 interface AnalysisData {
   summary: string;
   bullet_points: string[];
@@ -31,6 +36,7 @@ interface AnalysisData {
   swot_analysis: SwotAnalysis;
   detailed_analysis: DetailedAnalysis;
   key_persons: KeyPerson[];
+  tech_and_trends: TechAndTrends;
 }
 
 // --- UI SUB-COMPONENTS ---
@@ -156,6 +162,30 @@ const KeyPersonsPanel = ({ data }: { data: KeyPerson[] }) => (
   </div>
 );
 
+const TechTrendsPanel = ({ data }: { data: TechAndTrends }) => (
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <div className="space-y-6 prose max-w-none text-gray-600">
+        <div>
+          <h3 className="font-bold text-gray-800 mt-0">Recurring Technological Themes</h3>
+          <div className="flex flex-wrap gap-2 not-prose">
+            {data.recurring_themes?.map((theme, i) => (
+              <span key={`theme-${i}`} className="badge badge-lg badge-outline">{theme}</span>
+            ))}
+          </div>
+        </div>
+        <div>
+          <h3 className="font-bold text-gray-800">Key Market Trends</h3>
+          <ul className="list-disc list-inside">
+            {data.market_trends?.map((trend, i) => <li key={`trend-${i}`}>{trend}</li>)}
+          </ul>
+        </div>
+        <div>
+          <h3 className="font-bold text-gray-800">Thought Leadership Position</h3>
+          <p className="italic">"{data.thought_leadership_position}"</p>
+        </div>
+      </div>
+    </div>
+  );
 
 // --- MAIN PAGE COMPONENT ---
 export default function LeadDetailPage() {
@@ -211,9 +241,38 @@ export default function LeadDetailPage() {
         <div className="lg:col-span-3">
           <div role="tablist" className="tabs tabs-bordered mb-4">
             <a role="tab" className={`tab ${activeTab === 'overview' ? 'tab-active font-semibold' : ''}`} onClick={() => setActiveTab('overview')}>Overview</a>
-            <a role="tab" className={`tab ${activeTab === 'detailed' ? 'tab-active font-semibold' : ''}`} onClick={() => setActiveTab('detailed')} disabled={!analysisData}>Detailed Analysis</a>
-            <a role="tab" className={`tab ${activeTab === 'swot' ? 'tab-active font-semibold' : ''}`} onClick={() => setActiveTab('swot')} disabled={!analysisData}>SWOT Analysis</a>
-            <a role="tab" className={`tab ${activeTab === 'persons' ? 'tab-active font-semibold' : ''}`} onClick={() => setActiveTab('persons')} disabled={!analysisData}>Key Persons</a>
+            
+            <a 
+              role="tab" 
+              className={`tab ${activeTab === 'detailed' ? 'tab-active font-semibold' : ''} ${!analysisData ? 'tab-disabled' : ''}`} 
+              onClick={() => analysisData && setActiveTab('detailed')}
+            >
+              Detailed Analysis
+            </a>
+            
+            <a 
+              role="tab" 
+              className={`tab ${activeTab === 'swot' ? 'tab-active font-semibold' : ''} ${!analysisData ? 'tab-disabled' : ''}`} 
+              onClick={() => analysisData && setActiveTab('swot')}
+            >
+              SWOT
+            </a>
+
+            <a 
+              role="tab" 
+              className={`tab ${activeTab === 'persons' ? 'tab-active font-semibold' : ''} ${!analysisData ? 'tab-disabled' : ''}`} 
+              onClick={() => analysisData && setActiveTab('persons')}
+            >
+              Key Persons
+            </a>
+
+            <a 
+              role="tab" 
+              className={`tab ${activeTab === 'tech' ? 'tab-active font-semibold' : ''} ${!analysisData ? 'tab-disabled' : ''}`} 
+              onClick={() => analysisData && setActiveTab('tech')}
+            >
+              Tech & Trends
+            </a>
           </div>
           
           {lead.status === 'COMPLETED' && analysisData ? (
@@ -222,6 +281,7 @@ export default function LeadDetailPage() {
               {activeTab === 'detailed' && <DetailedAnalysisPanel data={analysisData.detailed_analysis} />}
               {activeTab === 'swot' && <SwotPanel data={analysisData.swot_analysis} />}
               {activeTab === 'persons' && <KeyPersonsPanel data={analysisData.key_persons} />}
+              {activeTab === 'tech' && <TechTrendsPanel data={analysisData.tech_and_trends} />}
             </div>
           ) : (
             <div className="bg-white p-6 rounded-lg shadow-md min-h-[300px] flex items-center justify-center">
