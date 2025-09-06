@@ -3,10 +3,11 @@
 import React, { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getLeadDetails, generatePitch } from '../api';
+import { getLeadDetails, generatePitch, Lead } from '../api';
 import PitchEditor from '../components/PitchEditor';
 
 // --- TYPE DEFINITIONS for the data parsed from the analysis_json field ---
+// Note: Sub-objects are optional to handle cases where an AI call might fail.
 interface KeyPerson {
   name: string;
   title: string;
@@ -29,14 +30,21 @@ interface TechAndTrends {
   market_trends: string[];
   thought_leadership_position: string;
 }
+interface GrowthAnalysis {
+    funding_summary: string;
+    revenue_estimate: string;
+    stability_rating: number;
+    report: string;
+}
 interface AnalysisData {
-  summary: string;
-  bullet_points: string[];
-  simple_pitch: string;
-  swot_analysis: SwotAnalysis;
-  detailed_analysis: DetailedAnalysis;
-  key_persons: KeyPerson[];
-  tech_and_trends: TechAndTrends;
+  summary?: string;
+  bullet_points?: string[];
+  simple_pitch?: string;
+  swot_analysis?: SwotAnalysis;
+  detailed_analysis?: DetailedAnalysis;
+  key_persons?: KeyPerson[];
+  tech_and_trends?: TechAndTrends;
+  growth_analysis?: GrowthAnalysis;
 }
 
 // --- UI SUB-COMPONENTS ---
@@ -61,14 +69,14 @@ const OverviewPanel = ({ data }: { data: AnalysisData }) => (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <h3 className="font-bold text-gray-800 mb-2 text-lg">Company Quick Summary</h3>
       <div className="max-h-48 overflow-y-auto pr-2 text-gray-600 prose">
-        <p>{data.summary}</p>
+        <p>{data.summary || 'No summary available.'}</p>
       </div>
     </div>
     <div className="bg-white p-6 rounded-lg shadow-md">
       <h3 className="font-bold text-gray-800 mb-2 text-lg">10 Key Business Points</h3>
       <div className="max-h-72 overflow-y-auto pr-2">
         <ul className="list-disc list-inside space-y-2 text-gray-600">
-          {data.bullet_points?.map((point, index) => <li key={index}>{point}</li>)}
+          {data.bullet_points?.map((point, index) => <li key={index}>{point}</li>) || <li>No data available.</li>}
         </ul>
       </div>
     </div>
@@ -81,25 +89,25 @@ const SwotPanel = ({ data }: { data: SwotAnalysis }) => (
       <div>
         <h3 className="font-bold text-lg text-green-700 mb-2">Strengths</h3>
         <ul className="list-disc list-inside space-y-1 text-gray-600">
-          {data.strengths?.map((point, i) => <li key={`s-${i}`}>{point}</li>)}
+          {data?.strengths?.map((point, i) => <li key={`s-${i}`}>{point}</li>) || <li>N/A</li>}
         </ul>
       </div>
       <div>
         <h3 className="font-bold text-lg text-red-700 mb-2">Weaknesses</h3>
         <ul className="list-disc list-inside space-y-1 text-gray-600">
-          {data.weaknesses?.map((point, i) => <li key={`w-${i}`}>{point}</li>)}
+          {data?.weaknesses?.map((point, i) => <li key={`w-${i}`}>{point}</li>) || <li>N/A</li>}
         </ul>
       </div>
       <div>
         <h3 className="font-bold text-lg text-blue-700 mb-2">Opportunities</h3>
         <ul className="list-disc list-inside space-y-1 text-gray-600">
-          {data.opportunities?.map((point, i) => <li key={`o-${i}`}>{point}</li>)}
+          {data?.opportunities?.map((point, i) => <li key={`o-${i}`}>{point}</li>) || <li>N/A</li>}
         </ul>
       </div>
       <div>
         <h3 className="font-bold text-lg text-orange-600 mb-2">Threats</h3>
         <ul className="list-disc list-inside space-y-1 text-gray-600">
-          {data.threats?.map((point, i) => <li key={`t-${i}`}>{point}</li>)}
+          {data?.threats?.map((point, i) => <li key={`t-${i}`}>{point}</li>) || <li>N/A</li>}
         </ul>
       </div>
     </div>
@@ -111,24 +119,24 @@ const DetailedAnalysisPanel = ({ data }: { data: DetailedAnalysis }) => (
     <div className="space-y-6 prose max-w-none text-gray-600">
       <div>
         <h3 className="font-bold text-gray-800 mt-0">Business Model</h3>
-        <p>{data.business_model}</p>
+        <p>{data?.business_model || 'N/A'}</p>
       </div>
       <div>
         <h3 className="font-bold text-gray-800">Target Audience</h3>
-        <p>{data.target_audience}</p>
+        <p>{data?.target_audience || 'N/A'}</p>
       </div>
       <div>
         <h3 className="font-bold text-gray-800">Value Proposition</h3>
-        <p>{data.value_proposition}</p>
+        <p>{data?.value_proposition || 'N/A'}</p>
       </div>
       <div>
         <h3 className="font-bold text-gray-800">Company Tone & Style</h3>
-        <p>{data.company_tone}</p>
+        <p>{data?.company_tone || 'N/A'}</p>
       </div>
       <div>
         <h3 className="font-bold text-orange-700">Potential Needs & Pain Points</h3>
         <ul className="list-disc list-inside">
-          {data.potential_needs?.map((point, i) => <li key={`need-${i}`}>{point}</li>)}
+          {data?.potential_needs?.map((point, i) => <li key={`need-${i}`}>{point}</li>) || <li>No data available.</li>}
         </ul>
       </div>
     </div>
@@ -168,24 +176,68 @@ const TechTrendsPanel = ({ data }: { data: TechAndTrends }) => (
         <div>
           <h3 className="font-bold text-gray-800 mt-0">Recurring Technological Themes</h3>
           <div className="flex flex-wrap gap-2 not-prose">
-            {data.recurring_themes?.map((theme, i) => (
-              <span key={`theme-${i}`} className="badge badge-lg badge-outline">{theme}</span>
-            ))}
+            {data?.recurring_themes?.length > 0 ? (
+              data.recurring_themes.map((theme, i) => (
+                <span key={`theme-${i}`} className="badge badge-lg badge-outline">{theme}</span>
+              ))
+            ) : (
+              <p className="text-sm">No specific themes identified.</p>
+            )}
           </div>
         </div>
         <div>
           <h3 className="font-bold text-gray-800">Key Market Trends</h3>
           <ul className="list-disc list-inside">
-            {data.market_trends?.map((trend, i) => <li key={`trend-${i}`}>{trend}</li>)}
+            {data?.market_trends?.map((trend, i) => <li key={`trend-${i}`}>{trend}</li>) || <li>No data available.</li>}
           </ul>
         </div>
         <div>
           <h3 className="font-bold text-gray-800">Thought Leadership Position</h3>
-          <p className="italic">"{data.thought_leadership_position}"</p>
+          <p className="italic">"{data?.thought_leadership_position || 'N/A'}"</p>
         </div>
       </div>
     </div>
-  );
+);
+
+const GrowthAnalysisPanel = ({ data }: { data: GrowthAnalysis }) => {
+    const getRatingColor = (rating: number) => {
+      if (rating <= 3) return 'bg-red-500';
+      if (rating <= 6) return 'bg-yellow-500';
+      return 'bg-green-500';
+    };
+  
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center mb-6">
+          <div className="p-4 border rounded-lg flex flex-col justify-center">
+            <h4 className="font-bold text-gray-500 text-sm uppercase tracking-wider">Funding</h4>
+            <p className="text-xl font-semibold text-gray-800 mt-1">{data?.funding_summary || 'N/A'}</p>
+          </div>
+          <div className="p-4 border rounded-lg flex flex-col justify-center">
+            <h4 className="font-bold text-gray-500 text-sm uppercase tracking-wider">Est. Revenue</h4>
+            <p className="text-xl font-semibold text-gray-800 mt-1">{data?.revenue_estimate || 'N/A'}</p>
+          </div>
+          <div className="p-4 border rounded-lg">
+            <h4 className="font-bold text-gray-500 text-sm uppercase tracking-wider">Stability Rating</h4>
+            <div className="w-full bg-gray-200 rounded-full h-6 mt-2">
+              <div 
+                className={`h-6 rounded-full ${getRatingColor(data?.stability_rating || 0)} transition-all duration-500`} 
+                style={{ width: `${(data?.stability_rating || 0) * 10}%` }}
+              >
+                <span className="text-white font-bold text-sm flex items-center justify-center h-full">
+                  {data?.stability_rating || 0} / 10
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h3 className="font-bold text-gray-800 text-lg">Analyst Report</h3>
+          <p className="prose max-w-none text-gray-600 mt-2">{data?.report || 'No report available.'}</p>
+        </div>
+      </div>
+    );
+};
 
 // --- MAIN PAGE COMPONENT ---
 export default function LeadDetailPage() {
@@ -194,7 +246,7 @@ export default function LeadDetailPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [userProduct, setUserProduct] = useState("Our innovative B2B SaaS solution that boosts productivity.");
   
-  const { data: lead, isLoading, error } = useQuery({
+  const { data: lead, isLoading, error } = useQuery<Lead>({
     queryKey: ['lead', leadId],
     queryFn: () => getLeadDetails(Number(leadId)),
     enabled: !!leadId,
@@ -206,7 +258,7 @@ export default function LeadDetailPage() {
   });
 
   const mutation = useMutation({
-    mutationFn: (productDesc: string) => generatePitch(Number(leadId), productDesc),
+    mutationFn: (productDesc: string) => generatePitch(Number(leadId!), productDesc),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pitches', leadId] });
     }
@@ -241,47 +293,31 @@ export default function LeadDetailPage() {
         <div className="lg:col-span-3">
           <div role="tablist" className="tabs tabs-bordered mb-4">
             <a role="tab" className={`tab ${activeTab === 'overview' ? 'tab-active font-semibold' : ''}`} onClick={() => setActiveTab('overview')}>Overview</a>
-            
-            <a 
-              role="tab" 
-              className={`tab ${activeTab === 'detailed' ? 'tab-active font-semibold' : ''} ${!analysisData ? 'tab-disabled' : ''}`} 
-              onClick={() => analysisData && setActiveTab('detailed')}
-            >
-              Detailed Analysis
-            </a>
-            
-            <a 
-              role="tab" 
-              className={`tab ${activeTab === 'swot' ? 'tab-active font-semibold' : ''} ${!analysisData ? 'tab-disabled' : ''}`} 
-              onClick={() => analysisData && setActiveTab('swot')}
-            >
-              SWOT
-            </a>
-
-            <a 
-              role="tab" 
-              className={`tab ${activeTab === 'persons' ? 'tab-active font-semibold' : ''} ${!analysisData ? 'tab-disabled' : ''}`} 
-              onClick={() => analysisData && setActiveTab('persons')}
-            >
-              Key Persons
-            </a>
-
-            <a 
-              role="tab" 
-              className={`tab ${activeTab === 'tech' ? 'tab-active font-semibold' : ''} ${!analysisData ? 'tab-disabled' : ''}`} 
-              onClick={() => analysisData && setActiveTab('tech')}
-            >
-              Tech & Trends
-            </a>
+            <a role="tab" className={`tab ${activeTab === 'growth' ? 'tab-active font-semibold' : ''} ${!analysisData ? 'tab-disabled' : ''}`} onClick={() => analysisData && setActiveTab('growth')}>Growth Analysis</a>
+            <a role="tab" className={`tab ${activeTab === 'detailed' ? 'tab-active font-semibold' : ''} ${!analysisData ? 'tab-disabled' : ''}`} onClick={() => analysisData && setActiveTab('detailed')}>Detailed Analysis</a>
+            <a role="tab" className={`tab ${activeTab === 'swot' ? 'tab-active font-semibold' : ''} ${!analysisData ? 'tab-disabled' : ''}`} onClick={() => analysisData && setActiveTab('swot')}>SWOT</a>
+            <a role="tab" className={`tab ${activeTab === 'persons' ? 'tab-active font-semibold' : ''} ${!analysisData ? 'tab-disabled' : ''}`} onClick={() => analysisData && setActiveTab('persons')}>Key Persons</a>
+            <a role="tab" className={`tab ${activeTab === 'tech' ? 'tab-active font-semibold' : ''} ${!analysisData ? 'tab-disabled' : ''}`} onClick={() => analysisData && setActiveTab('tech')}>Tech & Trends</a>
           </div>
           
           {lead.status === 'COMPLETED' && analysisData ? (
             <div>
               {activeTab === 'overview' && <OverviewPanel data={analysisData} />}
-              {activeTab === 'detailed' && <DetailedAnalysisPanel data={analysisData.detailed_analysis} />}
-              {activeTab === 'swot' && <SwotPanel data={analysisData.swot_analysis} />}
-              {activeTab === 'persons' && <KeyPersonsPanel data={analysisData.key_persons} />}
-              {activeTab === 'tech' && <TechTrendsPanel data={analysisData.tech_and_trends} />}
+              
+              {activeTab === 'growth' && analysisData.growth_analysis && 
+                <GrowthAnalysisPanel data={analysisData.growth_analysis} />}
+
+              {activeTab === 'detailed' && analysisData.detailed_analysis && 
+                <DetailedAnalysisPanel data={analysisData.detailed_analysis} />}
+
+              {activeTab === 'swot' && analysisData.swot_analysis && 
+                <SwotPanel data={analysisData.swot_analysis} />}
+
+              {activeTab === 'persons' && analysisData.key_persons && 
+                <KeyPersonsPanel data={analysisData.key_persons} />}
+
+              {activeTab === 'tech' && analysisData.tech_and_trends && 
+                <TechTrendsPanel data={analysisData.tech_and_trends} />}
             </div>
           ) : (
             <div className="bg-white p-6 rounded-lg shadow-md min-h-[300px] flex items-center justify-center">
