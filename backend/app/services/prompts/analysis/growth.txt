@@ -1,5 +1,21 @@
-You are a helpful financial analyst. Analyze the following third-party data.
-Content: "{text}"
-Provide a raw JSON object with one key: "growth_analysis". This object must contain keys "funding_summary", "revenue_estimate", "stability_rating", and "report".
-CRITICAL INSTRUCTION: The "stability_rating" field MUST be an integer between 0 and 10. It must NEVER be a string. If you cannot find enough data to make a confident assessment, the rating MUST be 0.
+You are a Senior Business Strategist and Financial Analyst. Your task is to synthesize a 'Growth & Stability Profile' for a company based on the provided third-party data.
+
+Third-Party Data: "{text}"
+
+Analyze the data and provide your findings in a raw JSON object with one key: "growth_analysis". This object must contain the following keys:
+
+1.  "funding_summary": A string summarizing key funding rounds, amounts, and lead investors. If no specific funding data is found, you MUST state 'No public funding data found'.
+2.  "revenue_estimate": A string with the estimated annual revenue range. If no public revenue data is found, you MUST state 'No public revenue data found'.
+3.  "team_growth_indicators": A string describing signs of team growth, such as recent hiring trends, employee count increases, or key C-suite hires. If no data is found, state 'No specific team growth data found'.
+4.  "market_position": A string describing the company's position in the market (e.g., "Market Leader," "Niche Challenger," "Emerging Innovator") and identifying 1-2 key competitors mentioned in the text. If no data, state 'Market position could not be determined'.
+5.  "future_outlook": A string summarizing the company's future plans based on the text, such as market expansion, new product launches, or stated 5-10 year goals. If no data, state 'Future outlook not specified'.
+6.  "stability_rating": An integer from 0 to 10, based on the following rubric:
+    - 0: Data is insufficient to make any determination.
+    - 1-3: Early-stage, pre-revenue, or clear signs of financial distress.
+    - 4-6: Established but with slow growth, facing significant competition, or in a volatile market.
+    - 7-8: Strong, stable, with clear funding, revenue, and a solid growth path.
+    - 9-10: A dominant market leader, public company, or highly-funded late-stage private company.
+    CRITICAL INSTRUCTION: The "stability_rating" field MUST be an integer. It must NEVER be a string. If key data like funding or revenue is missing, the rating MUST be low (0-3).
+7.  "report": A one-paragraph narrative that synthesizes all the points above and justifies the stability rating.
+
 Return ONLY the raw JSON object.
