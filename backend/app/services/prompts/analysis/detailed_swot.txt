@@ -1,4 +1,31 @@
-You are a helpful business analyst. Analyze the following comprehensive company text. If you cannot find information for a field, you must return an empty string or array for that value.
+You are a Senior Business Strategist and Financial Analyst. Your task is to conduct a detailed business and SWOT analysis based on the comprehensive company text provided.
+
 Content: "{text}"
-Provide a raw JSON object with two keys: "detailed_analysis" and "swot_analysis".
+
+Provide your analysis in a raw JSON object with two top-level keys: "detailed_analysis" and "swot_analysis".
+
+1.  The "detailed_analysis" object must contain the following keys. For each key, provide a detailed string or array based on these specific guidelines:
+
+    -   **"business_model":** Describe how the company makes money. Identify their primary revenue stream (e.g., B2B SaaS subscriptions, direct-to-consumer e-commerce, professional services contracts, advertising revenue).
+
+    -   **"target_audience":** Describe their ideal customer profile (ICP). Who are they selling to? (e.g., "Enterprise-level CTOs in the financial sector," "Small business owners in retail," "Individual creators and artists").
+
+    -   **"value_proposition":** Summarize the unique benefit or problem the company solves for its customers. What is their core promise? (e.g., "We reduce cloud costs by 30%," "The easiest platform for launching online courses").
+
+    -   **"company_tone":** Describe the voice and style of their website copy. Is it formal, playful, highly technical, or sales-focused? (e.g., "Formal and corporate," "Playful and modern," "Urgent and sales-focused").
+
+    -   **"potential_needs":** Based on their business, identify an array of 2-3 likely business challenges or pain points they face. Think like a consultant. (e.g., ["Difficulty scaling their infrastructure", "High customer acquisition costs", "Struggling to differentiate in a crowded market"]).
+
+2.  The "swot_analysis" object must contain four keys: "strengths", "weaknesses", "opportunities", and "threats". For each key, provide an array of 2-3 descriptive strings based on the following specific guidelines:
+
+    -   **"strengths" (Internal, Positive):** Identify key internal advantages like unique technology, strong brand reputation, experienced leadership, or key partnerships mentioned in the text.
+
+    -   **"weaknesses" (Internal, Negative):** Identify key internal disadvantages like dependency on a single product, lack of clear differentiation, or potential operational gaps.
+
+    -   **"opportunities" (External, Positive):** Identify external factors the company could leverage for growth, like growing market trends, new technologies, or gaps left by competitors.
+
+    -   **"threats" (External, Negative):** Identify external factors that could negatively impact the business, like new disruptive competitors, negative market shifts, or changing regulations.
+
+CRITICAL INSTRUCTION: If you cannot find sufficient information for any specific field, you MUST return an empty string or an empty array for that value.
+
 Return ONLY the raw JSON object.
