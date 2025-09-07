@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import re
 from celery import Celery
 from sqlalchemy.orm import Session
 from bs4 import BeautifulSoup
@@ -42,37 +43,43 @@ def run_async_in_worker(async_func):
     return loop.run_until_complete(async_func)
 
 
-# --- Resilient, Specialized AI Helper Functions with Improved Prompts ---
+# --- Bulletproof, Regex-Powered AI Helper Functions ---
 
-# --- THIS IS THE CORRECTED HELPER FUNCTION ---
 async def _safe_ai_json_parse(prompt: str, task_name: str, default_value: dict) -> dict:
     """
-    A robust wrapper for making an AI call and parsing the JSON response.
-    It correctly handles markdown-wrapped JSON by cleaning the string FIRST.
+    A truly robust wrapper for making an AI call and extracting/parsing JSON.
+    It uses regular expressions to find the JSON block and is guaranteed to
+    always return a dictionary.
     """
     try:
-        # Step 1: Make the AI call
         raw_result = await ai_service.generate_text(prompt)
 
-        # Step 2: Check for a completely empty or None response
         if not raw_result or not raw_result.strip():
             logger.warning(f"AI task '{task_name}' returned a completely empty response.")
             return default_value
 
-        # Step 3: Clean the string FIRST to remove markdown fences and whitespace
-        clean_json_str = raw_result.strip().replace("```json", "").replace("```", "").strip()
+        # Step 1: Try to find a JSON block wrapped in markdown fences
+        match = re.search(r"```json\s*(\{.*?\})\s*```", raw_result, re.DOTALL)
+        
+        json_string = ""
+        if match:
+            json_string = match.group(1)
+        else:
+            # Step 2: Fallback - find the first and last curly brace
+            match = re.search(r"(\{.*\})", raw_result, re.DOTALL)
+            if match:
+                json_string = match.group(1)
 
-        # Step 4: NOW, check if the cleaned string looks like a JSON object
-        if not clean_json_str.startswith('{'):
-            logger.warning(f"AI task '{task_name}' returned a non-JSON response after cleaning. Raw Response: '{raw_result}'")
+        if not json_string:
+            logger.warning(f"AI task '{task_name}' could not find a valid JSON block in the response. Raw Response: '{raw_result}'")
             logger.debug(f"Failed Prompt for '{task_name}':\n{prompt}")
             return default_value
 
-        # Step 5: Try to parse the cleaned JSON string
+        # Step 3: Try to parse the extracted JSON string
         try:
-            return json.loads(clean_json_str)
+            return json.loads(json_string)
         except json.JSONDecodeError as e:
-            logger.error(f"AI task '{task_name}' failed to decode JSON after cleaning. Error: {e}. Cleaned response: {clean_json_str}")
+            logger.error(f"AI task '{task_name}' failed to decode extracted JSON. Error: {e}. Extracted String: {json_string}")
             return default_value
 
     except Exception as e:
@@ -112,7 +119,8 @@ async def get_growth_analysis(text: str) -> dict:
     Content: "{text}"
     Provide a raw JSON object with one key: "growth_analysis". This object should contain keys "funding_summary", "revenue_estimate", "stability_rating", and "report".
     Return ONLY the raw JSON object."""
-    return await _safe_ai_json_parse(prompt, "Growth Analysis", {"growth_analysis": {}})
+    default = {"growth_analysis": {"funding_summary": "N/A", "revenue_estimate": "N/A", "stability_rating": 0, "report": "Could not retrieve third-party growth data."}}
+    return await _safe_ai_json_parse(prompt, "Growth Analysis", default)
 
 @celery.task
 def process_lead_website(lead_id: int, url: str):
@@ -156,7 +164,8 @@ def process_lead_website(lead_id: int, url: str):
             
             final_analysis = {}
             for result in ai_results:
-                final_analysis.update(result)
+                if result is not None:
+                    final_analysis.update(result)
             
             return final_analysis
 
