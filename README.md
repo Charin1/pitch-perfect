@@ -2,7 +2,7 @@
 
 [![Status](https://img.shields.io/badge/status-in_development-yellow)](https://github.com/your-username/pitchperfect)
 
-PitchPerfect is a comprehensive business intelligence tool designed to automate lead generation research. Go from a simple company URL to a full-funnel analysis in minutes. The application uses a configurable deep-crawling engine to gather website data and leverages Google's Gemini AI to generate a multi-faceted report, including a SWOT analysis, a detailed business model breakdown, and identification of key C-suite personnel.
+PitchPerfect is a comprehensive business intelligence tool designed to automate lead generation research. Go from a simple company URL to a full-funnel analysis in minutes. The application uses a configurable deep-crawling engine and direct third-party data fetching to gather intelligence. It then leverages a multi-call AI architecture with Google's Gemini to generate a detailed report, including a **Growth & Stability Analysis**, a **SWOT Analysis**, a **Tech & Trends report**, and identification of **Key C-suite Personnel**.
 
 This project is under active development.
 
@@ -10,27 +10,32 @@ This project is under active development.
 
 ### ✨ Core Features
 
-PitchPerfect transforms raw website data into actionable intelligence with a suite of powerful features:
+PitchPerfect transforms raw data into actionable intelligence with a suite of powerful, AI-driven features presented in a clean, tabbed interface.
 
--   **Configurable Deep Crawl:**
-    -   Performs a breadth-first search of the target website to gather comprehensive data.
-    -   Crawl limits (`MAX_PAGES`, `MAX_DEPTH`) are fully configurable via the `.env` file to balance speed and thoroughness.
-    -   Intelligently prioritizes content from pages with keywords like "about," "team," and "leadership" to feed the most relevant data to the AI.
+#### 1. Intelligent Data Gathering
+-   **Configurable Deep Crawl:** Performs a breadth-first search of the target website. Crawl limits (`MAX_PAGES`, `MAX_DEPTH`) are fully configurable via the `.env` file to balance speed and thoroughness.
+-   **Third-Party Data Aggregation:** Fetches data directly from public financial sources (like Crunchbase, Growjo, Owler, and Yahoo Finance) to build a profile of the company's financial health and growth trajectory.
+-   **Smart Text Prioritization:** Intelligently identifies and prioritizes content from "About," "Team," "Leadership," and "Blog/News" pages to feed the most relevant data to the AI for each specific analysis.
 
--   **Comprehensive AI Analysis:**
-    -   The lead detail page features a clean, tabbed interface to organize the generated insights:
-        -   **Overview:** A quick, scannable summary and 10 key business bullet points.
-        -   **Detailed Analysis:** An in-depth report on the company's business model, target audience, value proposition, and potential pain points.
-        -   **SWOT Analysis:** Automatically generated Strengths, Weaknesses, Opportunities, and Threats.
-        -   **Key Persons:** Identifies C-suite executives and other high-level management from the crawled text to pinpoint decision-makers.
+#### 2. Multi-Faceted AI Analysis Suite
+-   **Overview:** A quick, scannable summary and 10 key business bullet points.
+-   **Growth Analysis:** A detailed report on the company's financial stability, including:
+    -   Funding Summary
+    -   Estimated Revenue
+    -   A 1-10 Stability Rating with a visual progress bar.
+    -   Insights on team growth, market position, and future outlook.
+-   **Detailed Analysis:** An in-depth report on the company's business model, target audience, value proposition, and potential pain points.
+-   **SWOT Analysis:** Automatically generated Strengths, Weaknesses, Opportunities, and Threats.
+-   **Key Persons:** Identifies C-suite executives and other high-level management from the crawled text to pinpoint decision-makers.
+-   **Tech & Trend Analysis:** Analyzes the company's blog and news content to identify:
+    -   Strategic Focus & Keywords
+    -   Key Market Trends they are focused on.
+    -   Their public-facing Thought Leadership Position.
 
--   **Modern UI & UX:**
-    -   A clean, professional dashboard built with React, TypeScript, and Tailwind CSS.
-    -   Real-time status updates on the lead detail page, which automatically polls the backend while analysis is in progress.
-    -   Full lead management, including creating new leads and deleting old ones.
-
--   **On-Demand Pitch Generation:**
-    -   Generate unlimited, personalized sales pitches based on the AI analysis and your own product description.
+#### 3. Actionable Outputs & Modern UI
+-   **On-Demand Pitch Generation:** Generate unlimited, personalized sales pitches based on the AI analysis and your own product description.
+-   **Full Lead Management:** A clean dashboard to add, view, and delete leads.
+-   **Real-time Status Updates:** The frontend automatically polls the backend while analysis is in progress, providing live status changes from `PENDING` to `COMPLETED` or `FAILED`.
 
 ---
 
@@ -95,7 +100,7 @@ You must have the following software installed on your machine:
     ```bash
     cp .env.example .env
     ```
-    Edit the `.env` file to add your `SECRET_KEY`, `GOOGLE_API_KEY`, and optionally adjust the `CRAWLER_` settings.
+    Edit the `.env` file to add your `SECRET_KEY`, `GOOGLE_API_KEY`, and optionally adjust the `CRAWLER_` and `AI_` settings.
 
 6.  **Run the Servers (in two separate terminals)**
     -   **Terminal 1: Start the Celery Worker**
@@ -124,7 +129,7 @@ You must have the following software installed on your machine:
 3.  **Configure Environment Variables**
     Create a `.env` file in the `frontend` directory with the following content:
     ```ini
-    VITE_API_BASE_URL=http://120.0.0.1:8000
+    VITE_API_BASE_URL=http://127.0.0.1:8000
     ```
 
 4.  **Run the Development Server (in a third terminal)**
@@ -138,6 +143,7 @@ You can now access the application at `http://localhost:5173` (or whatever URL y
 
 ### 🗺️ Future Roadmap
 
+-   [ ] **Competitive Landscape Analysis**: Analyze multiple competitors side-by-side.
 -   [ ] **Pitch History & Templates**: Save all generated pitches and allow users to create their own templates.
 -   [ ] **Email Integration**: Add a "Send Pitch" button to open a pre-filled `mailto:` link.
 -   [ ] **Lead Tagging & Filtering**: Organize and filter the lead dashboard.
