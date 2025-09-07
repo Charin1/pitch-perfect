@@ -205,11 +205,9 @@ const GrowthAnalysisPanel = ({ data }: { data: GrowthAnalysis }) => {
       return 'bg-green-500';
     };
 
-    // --- Frontend Safety Net ---
     const rating = data?.stability_rating;
-    const isValidRating = typeof rating === 'number' && !isNaN(rating);
-    const displayRating = isValidRating ? rating : 0;
-    const ratingText = isValidRating ? `${rating} / 10` : "Invalid Data";
+    const validatedRating = (typeof rating === 'number' && !isNaN(rating)) ? rating : 0;
+    const ratingText = `${validatedRating} / 10`;
   
     return (
       <div className="bg-white p-6 rounded-lg shadow-md">
@@ -224,12 +222,19 @@ const GrowthAnalysisPanel = ({ data }: { data: GrowthAnalysis }) => {
           </div>
           <div className="p-4 border rounded-lg">
             <h4 className="font-bold text-gray-500 text-sm uppercase tracking-wider">Stability Rating</h4>
-            <div className="w-full bg-gray-200 rounded-full h-6 mt-2">
+            
+            {/* --- THIS IS THE CORRECTED PROGRESS BAR --- */}
+            <div className="relative w-full bg-gray-200 rounded-full h-6 mt-2">
+              {/* The colored bar (no text inside) */}
               <div 
-                className={`h-6 rounded-full ${getRatingColor(displayRating)} transition-all duration-500`} 
-                style={{ width: `${displayRating * 10}%` }}
-              >
-                <span className="text-white font-bold text-sm flex items-center justify-center h-full">
+                className={`h-full rounded-full ${getRatingColor(validatedRating)} transition-all duration-500`} 
+                style={{ width: `${validatedRating * 10}%` }}
+              />
+              {/* The text overlay (always centered) */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span 
+                  className={`font-bold text-sm ${validatedRating < 4 ? 'text-gray-700' : 'text-white'}`}
+                >
                   {ratingText}
                 </span>
               </div>
