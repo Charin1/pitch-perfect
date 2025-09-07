@@ -32,6 +32,9 @@ interface TechAndTrends {
 interface GrowthAnalysis {
     funding_summary: string;
     revenue_estimate: string;
+    team_growth_indicators: string;
+    market_position: string;
+    future_outlook: string;
     stability_rating: number | string;
     report: string;
 }
@@ -221,8 +224,21 @@ const TechTrendsPanel = ({ data }: { data: TechAndTrends }) => {
   );
 };
 
+const MetricCard = ({ title, children }: { title: string, children: React.ReactNode }) => (
+    // BUG FIX: Removed text-center to align with other headings
+    <div className="p-4 border rounded-lg flex flex-col justify-start">
+        {/* BUG FIX: Changed h4 to h3 and applied consistent styling */}
+        <h3 className="font-bold text-gray-800 text-lg">{title}</h3>
+        <div className="text-base text-gray-600 mt-2">
+            {children}
+        </div>
+    </div>
+);
+
+
 const GrowthAnalysisPanel = ({ data }: { data: GrowthAnalysis }) => {
     const getRatingColor = (rating: number) => {
+      if (rating === 0) return 'bg-gray-400';
       if (rating <= 3) return 'bg-red-500';
       if (rating <= 6) return 'bg-yellow-500';
       return 'bg-green-500';
@@ -234,39 +250,57 @@ const GrowthAnalysisPanel = ({ data }: { data: GrowthAnalysis }) => {
   
     return (
       <div className="bg-white p-6 rounded-lg shadow-md">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center mb-6">
-          <div className="p-4 border rounded-lg flex flex-col justify-center">
-            <h4 className="font-bold text-gray-500 text-sm uppercase tracking-wider">Funding</h4>
-            <p className="text-xl font-semibold text-gray-800 mt-1">{data?.funding_summary || 'N/A'}</p>
-          </div>
-          <div className="p-4 border rounded-lg flex flex-col justify-center">
-            <h4 className="font-bold text-gray-500 text-sm uppercase tracking-wider">Est. Revenue</h4>
-            <p className="text-xl font-semibold text-gray-800 mt-1">{data?.revenue_estimate || 'N/A'}</p>
-          </div>
-          <div className="p-4 border rounded-lg">
-            <h4 className="font-bold text-gray-500 text-sm uppercase tracking-wider">Stability Rating</h4>
-            <div className="relative w-full bg-gray-200 rounded-full h-6 mt-2">
-              <div 
-                className={`h-full rounded-full ${getRatingColor(validatedRating)} transition-all duration-500`} 
-                style={{ width: `${validatedRating * 10}%` }}
-              />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span 
-                  className={`font-bold text-sm ${validatedRating < 4 ? 'text-gray-700' : 'text-white'}`}
-                >
-                  {ratingText}
-                </span>
-              </div>
+        {/* Top Row: Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <MetricCard title="Funding">
+                <p>{data?.funding_summary || 'N/A'}</p>
+            </MetricCard>
+            <MetricCard title="Est. Revenue">
+                <p>{data?.revenue_estimate || 'N/A'}</p>
+            </MetricCard>
+            
+            <div className="p-4 border rounded-lg">
+                {/* BUG FIX: Changed h4 to h3 and applied consistent styling */}
+                <h3 className="font-bold text-gray-800 text-lg">Stability Rating</h3>
+                <div className="relative w-full bg-gray-200 rounded-full h-6 mt-2">
+                    <div 
+                        className={`h-full rounded-full ${getRatingColor(validatedRating)} transition-all duration-500`} 
+                        style={{ width: `${validatedRating * 10}%` }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <span className={`font-bold text-sm ${validatedRating < 4 && validatedRating > 0 ? 'text-gray-700' : 'text-white'}`}>
+                            {ratingText}
+                        </span>
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
+
+        {/* Middle Row: Detailed Insights */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <div>
+                <h3 className="font-bold text-gray-800 text-lg">Team Growth Indicators</h3>
+                <p className="text-gray-600 mt-1">{data?.team_growth_indicators || 'N/A'}</p>
+            </div>
+            <div>
+                <h3 className="font-bold text-gray-800 text-lg">Market Position</h3>
+                <p className="text-gray-600 mt-1">{data?.market_position || 'N/A'}</p>
+            </div>
+            <div className="md:col-span-2">
+                <h3 className="font-bold text-gray-800 text-lg">Future Outlook</h3>
+                <p className="text-gray-600 mt-1">{data?.future_outlook || 'N/A'}</p>
+            </div>
+        </div>
+
+        {/* Bottom Row: Analyst Report */}
         <div>
           <h3 className="font-bold text-gray-800 text-lg">Analyst Report</h3>
-          <p className="prose max-w-none text-gray-600 mt-2">{data?.report || 'No report available.'}</p>
+          <p className="max-w-none text-gray-600 mt-2">{data?.report || 'No report available.'}</p>
         </div>
       </div>
     );
 };
+
 
 // --- MAIN PAGE COMPONENT ---
 export default function LeadDetailPage() {
