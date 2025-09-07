@@ -58,14 +58,11 @@ async def _safe_ai_json_parse(prompt: str, task_name: str, default_value: dict) 
             logger.warning(f"AI task '{task_name}' returned a completely empty response.")
             return default_value
 
-        # Step 1: Try to find a JSON block wrapped in markdown fences
         match = re.search(r"```json\s*(\{.*?\})\s*```", raw_result, re.DOTALL)
-        
         json_string = ""
         if match:
             json_string = match.group(1)
         else:
-            # Step 2: Fallback - find the first and last curly brace
             match = re.search(r"(\{.*\})", raw_result, re.DOTALL)
             if match:
                 json_string = match.group(1)
@@ -75,7 +72,6 @@ async def _safe_ai_json_parse(prompt: str, task_name: str, default_value: dict) 
             logger.debug(f"Failed Prompt for '{task_name}':\n{prompt}")
             return default_value
 
-        # Step 3: Try to parse the extracted JSON string
         try:
             return json.loads(json_string)
         except json.JSONDecodeError as e:
@@ -115,12 +111,48 @@ async def get_tech_trends_analysis(text: str) -> dict:
     return await _safe_ai_json_parse(prompt, "Tech/Trends", {"tech_and_trends": {}})
 
 async def get_growth_analysis(text: str) -> dict:
-    prompt = f"""You are a helpful financial analyst. Analyze the following third-party data. If you cannot find specific funding or revenue data, you must state that clearly in the summary and return estimates as "Not found".
+    """
+    AI task to analyze third-party data with a multi-layer backend safety net
+    to ensure the stability rating is always a valid integer.
+    """
+    prompt = f"""You are a helpful financial analyst. Analyze the following third-party data.
     Content: "{text}"
-    Provide a raw JSON object with one key: "growth_analysis". This object should contain keys "funding_summary", "revenue_estimate", "stability_rating", and "report".
+    Provide a raw JSON object with one key: "growth_analysis". This object must contain keys "funding_summary", "revenue_estimate", "stability_rating", and "report".
+    CRITICAL INSTRUCTION: The "stability_rating" field MUST be an integer between 0 and 10. It must NEVER be a string. If you cannot find enough data to make a confident assessment, the rating MUST be 0.
     Return ONLY the raw JSON object."""
-    default = {"growth_analysis": {"funding_summary": "N/A", "revenue_estimate": "N/A", "stability_rating": 0, "report": "Could not retrieve third-party growth data."}}
-    return await _safe_ai_json_parse(prompt, "Growth Analysis", default)
+    
+    default = {"growth_analysis": {"funding_summary": "N/A", "revenue_estimate": "N/A", "stability_rating": 0, "report": "Could not retrieve or analyze third-party growth data."}}
+    
+    parsed_json = await _safe_ai_json_parse(prompt, "Growth Analysis", default)
+    
+    growth_data = parsed_json.get("growth_analysis")
+    if not growth_data:
+        return default
+
+    rating = growth_data.get("stability_rating")
+    
+    if isinstance(rating, str):
+        logger.warning(f"AI returned a non-integer stability rating: '{rating}'. Attempting to parse.")
+        try:
+            found_numbers = re.findall(r'\d+', rating)
+            rating = int(found_numbers[0]) if found_numbers else 0
+        except (ValueError, TypeError):
+            rating = 0
+
+    if not isinstance(rating, int) or not 0 <= rating <= 10:
+        logger.warning(f"AI rating '{rating}' is invalid or out of range. Forcing to 0.")
+        rating = 0
+
+    report_text = growth_data.get("report", "").lower()
+    if "could not" in report_text or "not found" in report_text or "unable to determine" in report_text:
+        if rating > 2:
+            logger.info(f"Report indicates no data, but rating was {rating}. Overriding to 1.")
+            rating = 1
+
+    growth_data["stability_rating"] = rating
+    parsed_json["growth_analysis"] = growth_data
+
+    return parsed_json
 
 @celery.task
 def process_lead_website(lead_id: int, url: str):

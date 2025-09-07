@@ -7,7 +7,6 @@ import { getLeadDetails, generatePitch, Lead } from '../api';
 import PitchEditor from '../components/PitchEditor';
 
 // --- TYPE DEFINITIONS for the data parsed from the analysis_json field ---
-// Note: Sub-objects are optional to handle cases where an AI call might fail.
 interface KeyPerson {
   name: string;
   title: string;
@@ -33,7 +32,7 @@ interface TechAndTrends {
 interface GrowthAnalysis {
     funding_summary: string;
     revenue_estimate: string;
-    stability_rating: number;
+    stability_rating: number | string; // Allow string for initial flexibility
     report: string;
 }
 interface AnalysisData {
@@ -205,6 +204,12 @@ const GrowthAnalysisPanel = ({ data }: { data: GrowthAnalysis }) => {
       if (rating <= 6) return 'bg-yellow-500';
       return 'bg-green-500';
     };
+
+    // --- Frontend Safety Net ---
+    const rating = data?.stability_rating;
+    const isValidRating = typeof rating === 'number' && !isNaN(rating);
+    const displayRating = isValidRating ? rating : 0;
+    const ratingText = isValidRating ? `${rating} / 10` : "Invalid Data";
   
     return (
       <div className="bg-white p-6 rounded-lg shadow-md">
@@ -221,11 +226,11 @@ const GrowthAnalysisPanel = ({ data }: { data: GrowthAnalysis }) => {
             <h4 className="font-bold text-gray-500 text-sm uppercase tracking-wider">Stability Rating</h4>
             <div className="w-full bg-gray-200 rounded-full h-6 mt-2">
               <div 
-                className={`h-6 rounded-full ${getRatingColor(data?.stability_rating || 0)} transition-all duration-500`} 
-                style={{ width: `${(data?.stability_rating || 0) * 10}%` }}
+                className={`h-6 rounded-full ${getRatingColor(displayRating)} transition-all duration-500`} 
+                style={{ width: `${displayRating * 10}%` }}
               >
                 <span className="text-white font-bold text-sm flex items-center justify-center h-full">
-                  {data?.stability_rating || 0} / 10
+                  {ratingText}
                 </span>
               </div>
             </div>
