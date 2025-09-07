@@ -32,7 +32,7 @@ interface TechAndTrends {
 interface GrowthAnalysis {
     funding_summary: string;
     revenue_estimate: string;
-    stability_rating: number | string; // Allow string for initial flexibility
+    stability_rating: number | string;
     report: string;
 }
 interface AnalysisData {
@@ -169,34 +169,57 @@ const KeyPersonsPanel = ({ data }: { data: KeyPerson[] }) => (
   </div>
 );
 
-const TechTrendsPanel = ({ data }: { data: TechAndTrends }) => (
+const TechTrendsPanel = ({ data }: { data: TechAndTrends }) => {
+    const ThemeDisplay = ({ theme }: { theme: string }) => {
+        const match = theme.match(/(.*?)\s*\((.*)\)/);
+
+        return (
+            <div className="p-4 border rounded-lg bg-gray-50 flex flex-col justify-center">
+                {match ? (
+                    <>
+                        <h4 className="font-bold text-gray-800 text-center">{match[1].trim()}</h4>
+                        <div className="flex flex-wrap gap-2 mt-2 justify-center">
+                            {match[2].split(',').map(d => d.trim()).map((detail, i) => (
+                                <span key={i} className="badge badge-sm">{detail}</span>
+                            ))}
+                        </div>
+                    </>
+                ) : (
+                    <h4 className="font-bold text-gray-800 text-center">{theme}</h4>
+                )}
+            </div>
+        );
+    };
+
+    return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <div className="space-y-6 prose max-w-none text-gray-600">
+      <div className="space-y-8">
         <div>
-          <h3 className="font-bold text-gray-800 mt-0">Recurring Technological Themes</h3>
-          <div className="flex flex-wrap gap-2 not-prose">
+          <h3 className="font-bold text-gray-800 text-lg">Strategic Focus & Keywords</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
             {data?.recurring_themes?.length > 0 ? (
               data.recurring_themes.map((theme, i) => (
-                <span key={`theme-${i}`} className="badge badge-lg badge-outline">{theme}</span>
+                <ThemeDisplay key={`theme-${i}`} theme={theme} />
               ))
             ) : (
-              <p className="text-sm">No specific themes identified.</p>
+              <p className="text-sm text-gray-500 col-span-2">No specific themes identified.</p>
             )}
           </div>
         </div>
         <div>
-          <h3 className="font-bold text-gray-800">Key Market Trends</h3>
-          <ul className="list-disc list-inside">
+          <h3 className="font-bold text-gray-800 text-lg">Key Market Trends</h3>
+          <ul className="list-disc list-inside space-y-1 text-gray-600 mt-2">
             {data?.market_trends?.map((trend, i) => <li key={`trend-${i}`}>{trend}</li>) || <li>No data available.</li>}
           </ul>
         </div>
         <div>
-          <h3 className="font-bold text-gray-800">Thought Leadership Position</h3>
-          <p className="italic">"{data?.thought_leadership_position || 'N/A'}"</p>
+          <h3 className="font-bold text-gray-800 text-lg">Thought Leadership Position</h3>
+          <p className="italic text-gray-600 mt-2">"{data?.thought_leadership_position || 'N/A'}"</p>
         </div>
       </div>
     </div>
-);
+  );
+};
 
 const GrowthAnalysisPanel = ({ data }: { data: GrowthAnalysis }) => {
     const getRatingColor = (rating: number) => {
@@ -222,15 +245,11 @@ const GrowthAnalysisPanel = ({ data }: { data: GrowthAnalysis }) => {
           </div>
           <div className="p-4 border rounded-lg">
             <h4 className="font-bold text-gray-500 text-sm uppercase tracking-wider">Stability Rating</h4>
-            
-            {/* --- THIS IS THE CORRECTED PROGRESS BAR --- */}
             <div className="relative w-full bg-gray-200 rounded-full h-6 mt-2">
-              {/* The colored bar (no text inside) */}
               <div 
                 className={`h-full rounded-full ${getRatingColor(validatedRating)} transition-all duration-500`} 
                 style={{ width: `${validatedRating * 10}%` }}
               />
-              {/* The text overlay (always centered) */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <span 
                   className={`font-bold text-sm ${validatedRating < 4 ? 'text-gray-700' : 'text-white'}`}
