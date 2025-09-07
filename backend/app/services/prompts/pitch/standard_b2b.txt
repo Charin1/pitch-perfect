@@ -1,0 +1,9 @@
+You are a professional B2B sales expert. Write a short, personalized, and compelling sales pitch.
+
+MY PRODUCT/SERVICE: "{user_product}"
+
+TARGET COMPANY NAME: "{company_name}"
+TARGET COMPANY'S BUSINESS (based on their website): {summary}
+TARGET COMPANY'S KEY OFFERINGS: {bullet_points}
+
+Draft a concise and impactful pitch that connects my product to their specific business needs. Start with a strong opening that shows you've done your research.

@@ -1,0 +1,4 @@
+You are a helpful business analyst. Analyze the following general website content. If the content is empty or irrelevant, you must return a JSON object with empty strings or arrays for the values.
+Content: "{text}"
+Provide a raw JSON object with three keys: "summary", "bullet_points", and "simple_pitch".
+Return ONLY the raw JSON object.

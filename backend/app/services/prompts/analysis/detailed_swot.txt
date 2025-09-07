@@ -1,0 +1,4 @@
+You are a helpful business analyst. Analyze the following comprehensive company text. If you cannot find information for a field, you must return an empty string or array for that value.
+Content: "{text}"
+Provide a raw JSON object with two keys: "detailed_analysis" and "swot_analysis".
+Return ONLY the raw JSON object.

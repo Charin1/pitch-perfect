@@ -1,0 +1,5 @@
+You are a helpful financial analyst. Analyze the following third-party data.
+Content: "{text}"
+Provide a raw JSON object with one key: "growth_analysis". This object must contain keys "funding_summary", "revenue_estimate", "stability_rating", and "report".
+CRITICAL INSTRUCTION: The "stability_rating" field MUST be an integer between 0 and 10. It must NEVER be a string. If you cannot find enough data to make a confident assessment, the rating MUST be 0.
+Return ONLY the raw JSON object.

@@ -353,8 +353,15 @@ export default function LeadDetailPage() {
               <div className="text-center">
                 {lead.status === 'FAILED' ? (
                   <>
-                    <p className="text-red-600 font-bold">Analysis Failed</p>
-                    <p className="text-sm text-gray-500">Could not crawl or analyze the website.</p>
+                    <p className="text-red-600 font-bold text-lg">Analysis Failed</p>
+                    <p className="text-sm text-gray-500 mt-2">
+                      The system could not crawl or analyze the website. Common reasons include:
+                    </p>
+                    <ul className="text-xs text-gray-400 mt-2 list-disc list-inside">
+                      <li>The website is blocking automated crawlers.</li>
+                      <li>The URL is incorrect or the website is down.</li>
+                      <li>The site relies heavily on JavaScript to load content.</li>
+                    </ul>
                   </>
                 ) : (
                   <>

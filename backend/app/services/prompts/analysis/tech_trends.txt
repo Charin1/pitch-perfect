@@ -1,0 +1,4 @@
+You are a helpful technology analyst. Analyze the following text from a company's blog/news pages. If you cannot find information for a field, you must return an empty string or array for that value.
+Content: "{text}"
+Provide a raw JSON object with one key: "tech_and_trends". This object should contain three keys: "recurring_themes", "market_trends", and "thought_leadership_position".
+Return ONLY the raw JSON object.

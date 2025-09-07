@@ -111,10 +111,6 @@ async def get_tech_trends_analysis(text: str) -> dict:
     return await _safe_ai_json_parse(prompt, "Tech/Trends", {"tech_and_trends": {}})
 
 async def get_growth_analysis(text: str) -> dict:
-    """
-    AI task to analyze third-party data with a multi-layer backend safety net
-    to ensure the stability rating is always a valid integer.
-    """
     prompt = f"""You are a helpful financial analyst. Analyze the following third-party data.
     Content: "{text}"
     Provide a raw JSON object with one key: "growth_analysis". This object must contain keys "funding_summary", "revenue_estimate", "stability_rating", and "report".
@@ -130,25 +126,11 @@ async def get_growth_analysis(text: str) -> dict:
         return default
 
     rating = growth_data.get("stability_rating")
-    
-    if isinstance(rating, str):
-        logger.warning(f"AI returned a non-integer stability rating: '{rating}'. Attempting to parse.")
-        try:
-            found_numbers = re.findall(r'\d+', rating)
-            rating = int(found_numbers[0]) if found_numbers else 0
-        except (ValueError, TypeError):
-            rating = 0
-
     if not isinstance(rating, int) or not 0 <= rating <= 10:
-        logger.warning(f"AI rating '{rating}' is invalid or out of range. Forcing to 0.")
         rating = 0
-
     report_text = growth_data.get("report", "").lower()
-    if "could not" in report_text or "not found" in report_text or "unable to determine" in report_text:
-        if rating > 2:
-            logger.info(f"Report indicates no data, but rating was {rating}. Overriding to 1.")
-            rating = 1
-
+    if "could not" in report_text and rating > 2:
+        rating = 1
     growth_data["stability_rating"] = rating
     parsed_json["growth_analysis"] = growth_data
 
@@ -176,10 +158,12 @@ def process_lead_website(lead_id: int, url: str):
             crawled_pages, crawled_urls = results[0]
             growth_data_text = results[1]
             
+            if not crawled_pages:
+                logger.warning(f"Crawling returned no pages for lead {lead_id} ({url}). The site may be blocking crawlers or is a JS-heavy SPA.")
+                return None
+
             log_message = f"\n{'='*50}\nCRAWL SUMMARY FOR LEAD ID: {lead_id}\nCrawled {len(crawled_urls)} pages.\n{'='*50}\n"
             logger.info(log_message)
-
-            if not crawled_pages: raise ValueError("Crawling failed.")
 
             general_text, team_text, blog_news_text = _select_and_prioritize_text(crawled_pages)
             comprehensive_text = f"{general_text}\n{team_text}\n{blog_news_text}"
@@ -206,6 +190,11 @@ def process_lead_website(lead_id: int, url: str):
         
         analysis_data = run_async_in_worker(_process_lead_async())
         
+        if analysis_data is None:
+            lead.status = LeadStatus.FAILED
+            db.commit()
+            return
+
         lead.status = LeadStatus.COMPLETED
         lead.analysis_json = json.dumps(analysis_data)
         lead.summary = analysis_data.get("summary")

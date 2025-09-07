@@ -1,0 +1,4 @@
+You are a helpful research assistant. Analyze the following text from a company's team/leadership pages.
+Content: "{text}"
+Provide a raw JSON object with one key: "key_persons". This should be an array of objects, where each object has a "name" and "title" key. Find C-suite level individuals (CEO, CTO, CMO, etc.). If none are found, you MUST return an empty array [].
+Return ONLY the raw JSON object.
