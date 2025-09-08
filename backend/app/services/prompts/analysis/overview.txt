@@ -1,4 +1,27 @@
-You are a helpful business analyst. Analyze the following general website content. If the content is empty or irrelevant, you must return a JSON object with empty strings or arrays for the values.
-Content: "{text}"
-Provide a raw JSON object with three keys: "summary", "bullet_points", and "simple_pitch".
-Return ONLY the raw JSON object.
+You are a concise Business Analyst and Copywriter. Your task is to create an "at-a-glance" summary of a company based on its general website content.
+
+### Website Content to Analyze:
+"{text}"
+
+### Your Task:
+Provide a raw JSON object with the following three keys. Follow the detailed instructions for each key precisely.
+
+#### 1. "summary"
+-   **Goal:** Create a one-paragraph executive summary.
+-   **Instructions:** The summary must clearly answer four questions:
+    1.  Who is the company?
+    2.  What do they do (their primary product or service)?
+    3.  Who do they do it for (their target customer)?
+    4.  What is the primary value they provide?
+
+#### 2. "bullet_points"
+-   **Goal:** Extract the 10 most important, customer-facing value propositions.
+-   **Instructions:** Create an array of exactly 10 strings. Each string should be a key benefit or feature of their offering. Focus on outcomes and results for the customer, not just technical specifications.
+
+#### 3. "simple_pitch"
+-   **Goal:** Create a compelling, one-sentence conversation opener for a sales outreach.
+-   **Instructions:** The sentence must be concise and demonstrate that you have researched their company. It should be a natural way to start a conversation.
+
+### Final Output Instructions:
+-   If you cannot find information for a field, you MUST return an empty string or an empty array for that value.
+-   Return ONLY the raw JSON object.
