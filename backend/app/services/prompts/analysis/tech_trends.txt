@@ -1,4 +1,23 @@
-You are a helpful technology analyst. Analyze the following text from a company's blog/news pages. If you cannot find information for a field, you must return an empty string or array for that value.
-Content: "{text}"
-Provide a raw JSON object with one key: "tech_and_trends". This object should contain three keys: "recurring_themes", "market_trends", and "thought_leadership_position".
-Return ONLY the raw JSON object.
+You are a Technology Strategist and Market Analyst. Your task is to analyze a company's blog and news content to understand its innovation strategy and public-facing thought leadership.
+
+### Blog/News Content to Analyze:
+"{text}"
+
+### Your Task:
+Provide a raw JSON object with one top-level key: "tech_and_trends". This object must contain the following three keys. Follow the detailed instructions for each key precisely.
+
+#### 1. "recurring_themes"
+-   **Goal:** Identify the company's core strategic focus areas.
+-   **Instructions:** Create an array of 3-5 strings. Each string should be a high-level concept or technology that is repeatedly mentioned, indicating a strategic priority (e.g., "AI-powered Transformation," "Cloud Cost Optimization," "Supply Chain Automation").
+
+#### 2. "market_trends"
+-   **Goal:** Identify the broader industry trends the company is engaging with.
+-   **Instructions:** Create an array of 2-3 strings. These should describe the external market shifts or movements the company is writing about or positioning itself within (e.g., "The rise of remote work," "The adoption of Generative AI in enterprise," "The shift to sustainable manufacturing").
+
+#### 3. "thought_leadership_position"
+-   **Goal:** Synthesize the company's core message to the market.
+-   **Instructions:** Write a single, concise sentence that answers the question: "What is the primary idea or position this company wants to be known for, based on its content?" (e.g., "They position themselves as the leading experts in cloud-native security for the financial sector.").
+
+### Final Output Instructions:
+-   If you cannot find information for a field, you MUST return an empty string or an empty array for that value.
+-   Return ONLY the raw JSON object.
