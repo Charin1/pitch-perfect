@@ -1,6 +1,7 @@
 # PitchPerfect AI 🚀
 
-[![Status](https://img.shields.io/badge/status-in_development-yellow)](https://github.com/your-username/pitchperfect)
+[![Status](https://img.shields.io/badge/status-beta-blue)](https://github.com/your-username/pitchperfect)
+
 
 PitchPerfect is a comprehensive business intelligence tool designed to automate lead generation research. Go from a simple company URL to a full-funnel analysis in minutes. The application uses a configurable deep-crawling engine and direct third-party data fetching to gather intelligence. It then leverages a multi-call AI architecture with Google's Gemini to generate a detailed report, including a **Growth & Stability Analysis**, a **SWOT Analysis**, a **Tech & Trends report**, and identification of **Key C-suite Personnel**.
 
